@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Merge motors, earn cash, and build the fastest garage in town." />
+  <title>Merge Motors | Car Merge Game</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="fix.css" />
+  <link rel="stylesheet" href="motion.css" />
+</head>
+<body>
+  <div class="background"><i></i><i></i><i></i></div>
+  <header class="topbar">
+    <a class="brand" href="#garage"><span class="brand-mark">M</span><span>Merge <em>Motors</em></span></a>
+    <div class="top-actions"><span class="status"><i></i> Garage open</span><button id="sound-toggle" type="button" aria-pressed="false">Sound off</button><button id="reset-game" type="button">Reset</button></div>
+  </header>
+  <main id="garage" class="layout">
+    <section class="garage-area" aria-label="Car merge garage">
+      <div class="eyebrow">NIGHT SHIFT GARAGE</div>
+      <h1>Merge up.<br /><span>Drive further.</span></h1>
+      <p class="intro">Pair matching cars to unlock faster machines, bigger payouts, and a garage that never parks.</p>
+      <div class="money-row"><div><small>CASH</small><strong>$<span id="cash">0</span></strong></div><div><small>TOTAL MERGES</small><strong id="merge-count">0</strong></div><div><small>MERGE PAYOUT</small><strong class="green">+$<span id="payout">10</span></strong></div></div>
+      <div class="merge-instruction"><span class="hint-dot">1</span>Select two matching cars <span class="arrow">→</span><span class="hint-dot">2</span>Merge for cash</div>
+      <div class="board" id="board" aria-label="Car garage board"></div>
+      <div class="garage-footer"><span id="garage-message">Select two matching cars to merge.</span><span><b id="filled-slots">0</b>/12 slots used</span></div>
+    </section>
+    <aside class="shop-panel" aria-label="Garage upgrades">
+      <div class="shop-heading"><div><div class="eyebrow">THE GARAGE SHOP</div><h2>Upgrade the fleet</h2></div><span class="cash-icon">$</span></div>
+      <p class="shop-copy">Put your merge money back into the garage.</p>
+      <div class="shop-list" id="shop-list"></div>
+      <section class="missions"><div class="section-heading"><h3>Garage goals</h3><span id="goal-count">0/4</span></div><div id="goal-list"></div></section>
+    </aside>
+  </main>
+  <footer><span>Merge Motors</span><span>Every great ride starts as two.</span></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
