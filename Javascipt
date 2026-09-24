@@ -1,0 +1,175 @@
+(() => {
+	"use strict";
+	const SAVE_KEY = "sprinkle-co-cupcake-save";
+	const upgrades = [
+		{ id: "sprinkles", name: "Sprinkle jar", description: "+1 cupcake per click", icon: "✦", baseCost: 25, kind: "click", amount: 1 },
+		{ id: "mixer", name: "Tiny mixer", description: "+1 cupcake per second", icon: "◒", baseCost: 60, kind: "passive", amount: 1 },
+		{ id: "baker", name: "Junior baker", description: "+5 cupcakes per second", icon: "♨", baseCost: 200, kind: "passive", amount: 5 },
+		{ id: "oven", name: "Second oven", description: "+25 cupcakes per second", icon: "▣", baseCost: 800, kind: "passive", amount: 25, unlock: 500 },
+		{ id: "decorator", name: "Cake decorator", description: "+100 cupcakes per second", icon: "✿", baseCost: 3000, kind: "passive", amount: 100, unlock: 1500 },
+		{ id: "delivery", name: "Sweet delivery van", description: "+500 cupcakes per second", icon: "➜", baseCost: 12000, kind: "passive", amount: 500, unlock: 6000 },
+		{ id: "factory", name: "Cupcake factory", description: "+2,500 cupcakes per second", icon: "♜", baseCost: 50000, kind: "passive", amount: 2500, unlock: 25000 },
+		{ id: "robot", name: "Batter bot", description: "+10,000 cupcakes per second", icon: "⚙", baseCost: 200000, kind: "passive", amount: 10000, unlock: 100000 },
+		{ id: "cloud", name: "Cloud kitchen", description: "+40,000 cupcakes per second", icon: "☁", baseCost: 800000, kind: "passive", amount: 40000, unlock: 400000 },
+		{ id: "portal", name: "Dessert portal", description: "+150,000 cupcakes per second", icon: "◎", baseCost: 3000000, kind: "passive", amount: 150000, unlock: 1500000 },
+		{ id: "moon", name: "Moon bakery", description: "+600,000 cupcakes per second", icon: "☾", baseCost: 12000000, kind: "passive", amount: 600000, unlock: 6000000 },
+		{ id: "star", name: "Star frosting lab", description: "+2,500,000 cupcakes per second", icon: "★", baseCost: 50000000, kind: "passive", amount: 2500000, unlock: 25000000 },
+		{ id: "dimension", name: "Cupcake dimension", description: "+10,000,000 cupcakes per second", icon: "◇", baseCost: 200000000, kind: "passive", amount: 10000000, unlock: 100000000 },
+		{ id: "universe", name: "Sweet universe", description: "+50,000,000 cupcakes per second", icon: "✧", baseCost: 1000000000, kind: "passive", amount: 50000000, unlock: 500000000 },
+		{ id: "infinity", name: "Infinity oven", description: "+250,000,000 cupcakes per second", icon: "∞", baseCost: 5000000000, kind: "passive", amount: 250000000, unlock: 2500000000 },
+		{ id: "legend", name: "Legendary bakery", description: "+1,000,000,000 cupcakes per second", icon: "♛", baseCost: 25000000000, kind: "passive", amount: 1000000000, unlock: 10000000000 },
+		{ id: "cosmic", name: "Cosmic frosting", description: "+5,000,000,000 cupcakes per second", icon: "✹", baseCost: 100000000000, kind: "passive", amount: 5000000000, unlock: 50000000000 },
+	];
+	const achievements = [
+		{ title: "First batch", detail: "Bake your first cupcake", test: game => game.total >= 1 },
+		{ title: "Baking momentum", detail: "Bake 100 cupcakes", test: game => game.total >= 100 },
+		{ title: "Small business", detail: "Buy your first upgrade", test: game => game.purchases >= 1 },
+		{ title: "Sugar rush", detail: "Bake 1,000 cupcakes", test: game => game.total >= 1000 },
+	];
+	const blank = { cupcakes: 0, total: 0, clickPower: 1, passive: 0, purchases: 0, streak: 0, lastClick: 0, boostUntil: 0, upgrades: {} };
+	let game = loadGame();
+	let toastTimer;
+	let musicContext;
+	let musicTimer;
+	let musicStep = 0;
+	let musicPlaying = false;
+	const musicNotes = new Set();
+	const $ = selector => document.querySelector(selector);
+
+	function loadGame() { try { return { ...blank, ...JSON.parse(localStorage.getItem(SAVE_KEY) || "{}") }; } catch { return { ...blank }; } }
+	function saveGame() { localStorage.setItem(SAVE_KEY, JSON.stringify(game)); }
+	function format(number) { return Math.floor(number).toLocaleString(); }
+	function cost(upgrade) { return Math.floor(upgrade.baseCost * Math.pow(1.15, game.upgrades[upgrade.id] || 0)); }
+	function canSee(upgrade) { return !upgrade.unlock || game.total >= upgrade.unlock; }
+	function boostActive() { return game.boostUntil > Date.now(); }
+	function multiplier() { return boostActive() ? 2 : 1; }
+	function cupcakeLevel() { return game.passive >= 150 ? "rainbow" : game.passive >= 100 ? "gold" : "classic"; }
+
+	function renderShop() {
+		$("#shop-list").innerHTML = upgrades.map(upgrade => {
+			const count = game.upgrades[upgrade.id] || 0;
+			const price = cost(upgrade);
+			const locked = !canSee(upgrade);
+			return `<article class="shop-item ${locked ? "locked" : ""}"><div class="shop-icon">${upgrade.icon}</div><div><h3>${upgrade.name} ${count ? `<small>Lv. ${count}</small>` : ""}</h3><p>${locked ? `Unlock at ${format(upgrade.unlock)} cupcakes` : upgrade.description}</p></div><button class="buy-button" type="button" data-upgrade="${upgrade.id}" ${locked || game.cupcakes < price ? "disabled" : ""}>${format(price)} <span>●</span></button></article>`;
+		}).join("");
+	}
+	function renderAchievements() {
+		const completed = achievements.filter(achievement => achievement.test(game)).length;
+		$("#achievement-count").textContent = `${completed}/${achievements.length}`;
+		$("#achievement-list").innerHTML = achievements.map(achievement => { const done = achievement.test(game); return `<div class="achievement ${done ? "done" : ""}"><span class="achievement-icon">${done ? "✓" : "○"}</span><span><b>${achievement.title}</b><br />${achievement.detail}</span></div>`; }).join("");
+	}
+	function render() {
+		$("#cupcake-count").textContent = format(game.cupcakes);
+		$("#per-second").textContent = format(game.passive);
+		$("#click-power").textContent = format(game.clickPower * multiplier());
+		$("#streak-count").textContent = format(game.streak);
+		$("#streak-note").textContent = game.streak >= 25 ? "On fire!" : game.streak >= 10 ? "Sweet rhythm!" : "Keep it sweet!";
+		const level = cupcakeLevel();
+		$("#cupcake-button").className = `cupcake-button level-${level}`;
+		$("#level-badge").textContent = level === "rainbow" ? "Rainbow level" : level === "gold" ? "Gold level" : "Classic level";
+		const boostButton = $("#boost-button");
+		const boostStatus = $("#boost-status");
+		boostButton.disabled = boostActive() || game.cupcakes < 500;
+		if (boostActive()) {
+			boostButton.textContent = `${Math.ceil((game.boostUntil - Date.now()) / 1000)}s left`;
+			boostStatus.textContent = "Every bake is doubled!";
+		} else {
+			boostButton.textContent = "500 ●";
+			boostStatus.textContent = "Double cupcakes for 60 seconds";
+		}
+		renderShop();
+		renderAchievements();
+	}
+	function showToast(message) {
+		const toast = $("#toast");
+		toast.textContent = message;
+		toast.classList.add("show");
+		clearTimeout(toastTimer);
+		toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+	}
+	function playNote() {
+		if (!musicContext) return;
+		const notes = [523.25, 659.25, 783.99, 659.25, 587.33, 698.46, 880, 698.46];
+		const oscillator = musicContext.createOscillator();
+		const gain = musicContext.createGain();
+		oscillator.type = "triangle";
+		oscillator.frequency.value = notes[musicStep++ % notes.length];
+		gain.gain.setValueAtTime(0.0001, musicContext.currentTime);
+		gain.gain.exponentialRampToValueAtTime(0.045, musicContext.currentTime + 0.02);
+		gain.gain.exponentialRampToValueAtTime(0.0001, musicContext.currentTime + 0.24);
+		oscillator.connect(gain).connect(musicContext.destination);
+		musicNotes.add(oscillator);
+		oscillator.addEventListener("ended", () => musicNotes.delete(oscillator), { once: true });
+		oscillator.start();
+		oscillator.stop(musicContext.currentTime + 0.25);
+	}
+	function toggleMusic() {
+		const button = $("#music-toggle");
+		if (musicPlaying) {
+			musicPlaying = false;
+			clearInterval(musicTimer);
+			musicTimer = null;
+			musicNotes.forEach(note => { try { note.stop(); } catch {} });
+			musicNotes.clear();
+			if (musicContext) { musicContext.close(); musicContext = null; }
+			button.textContent = "♫ Music off";
+			button.setAttribute("aria-pressed", "false");
+			return;
+		}
+		musicPlaying = true;
+		musicContext = new (window.AudioContext || window.webkitAudioContext)();
+		musicContext.resume();
+		playNote();
+		musicTimer = setInterval(playNote, 310);
+		button.textContent = "♫ Music on";
+		button.setAttribute("aria-pressed", "true");
+	}
+	function sprinkleFloat(amount) {
+		const float = document.createElement("span");
+		float.className = "float-number";
+		float.textContent = `+${format(amount)}`;
+		$("#cupcake-button").append(float);
+		setTimeout(() => float.remove(), 850);
+	}
+	function bake() {
+		const now = Date.now();
+		game.streak = now - game.lastClick < 1500 ? game.streak + 1 : 1;
+		game.lastClick = now;
+		const amount = game.clickPower * multiplier();
+		game.cupcakes += amount;
+		game.total += amount;
+		sprinkleFloat(amount);
+		saveGame();
+		render();
+	}
+	function buyBoost() {
+		if (boostActive() || game.cupcakes < 500) return;
+		game.cupcakes -= 500;
+		game.boostUntil = Date.now() + 60000;
+		showToast("2× Bake Boost activated for 60 seconds!");
+		saveGame();
+		render();
+	}
+	function buy(id) {
+		const upgrade = upgrades.find(item => item.id === id);
+		if (!upgrade || !canSee(upgrade)) return;
+		const price = cost(upgrade);
+		if (game.cupcakes < price) return;
+		game.cupcakes -= price;
+		game.upgrades[id] = (game.upgrades[id] || 0) + 1;
+		game.purchases += 1;
+		if (upgrade.kind === "click") game.clickPower += upgrade.amount;
+		if (upgrade.kind === "passive") game.passive += upgrade.amount;
+		showToast(`${upgrade.name} added to the bakery!`);
+		saveGame();
+		render();
+	}
+
+	$("#cupcake-button").addEventListener("click", bake);
+	$("#boost-button").addEventListener("click", buyBoost);
+	$("#music-toggle").addEventListener("click", toggleMusic);
+	$("#shop-list").addEventListener("click", event => { const button = event.target.closest("[data-upgrade]"); if (button) buy(button.dataset.upgrade); });
+	$("#reset-game").addEventListener("click", () => { if (!window.confirm("Reset your bakery and lose all cupcakes?")) return; game = { ...blank }; saveGame(); render(); showToast("Your bakery is fresh and ready."); });
+	setInterval(() => { if (game.passive) { const amount = game.passive * multiplier(); game.cupcakes += amount; game.total += amount; saveGame(); } render(); }, 1000);
+	render();
+})();

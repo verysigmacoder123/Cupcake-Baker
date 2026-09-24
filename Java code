@@ -1,0 +1,105 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+
+/** A small cupcake-clicking idle game inspired by classic clicker games. */
+public class CupcakeGame extends JFrame {
+    private long cupcakes = 0;
+    private long totalCupcakes = 0;
+    private int clickPower = 1;
+    private int bakers = 0;
+    private int ovens = 0;
+    private int clickUpgradeCost = 25;
+    private int bakerCost = 50;
+    private int ovenCost = 250;
+
+    private final JLabel score = new JLabel("Cupcakes: 0", SwingConstants.CENTER);
+    private final JLabel rate = new JLabel("Per second: 0", SwingConstants.CENTER);
+    private final JButton cupcakeButton = new JButton("🧁");
+    private final JButton clickUpgrade = new JButton();
+    private final JButton bakerUpgrade = new JButton();
+    private final JButton ovenUpgrade = new JButton();
+
+    public CupcakeGame() {
+        super("Cupcake Clicker");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(520, 430);
+        setLocationRelativeTo(null);
+
+        score.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 28));
+        rate.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
+        cupcakeButton.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 100));
+        cupcakeButton.setFocusPainted(false);
+        cupcakeButton.addActionListener(e -> bake(clickPower));
+
+        JPanel top = new JPanel(new GridLayout(2, 1));
+        top.add(score);
+        top.add(rate);
+
+        JPanel shop = new JPanel(new GridLayout(3, 1, 5, 5));
+        clickUpgrade.addActionListener(e -> buyClickPower());
+        bakerUpgrade.addActionListener(e -> buyBaker());
+        ovenUpgrade.addActionListener(e -> buyOven());
+        shop.add(clickUpgrade);
+        shop.add(bakerUpgrade);
+        shop.add(ovenUpgrade);
+
+        add(top, BorderLayout.NORTH);
+        add(cupcakeButton, BorderLayout.CENTER);
+        add(shop, BorderLayout.SOUTH);
+        updateDisplay();
+
+        new Timer(1000, e -> {
+            bake(bakers + ovens * 10);
+            updateDisplay();
+        }).start();
+    }
+
+    private void bake(int amount) {
+        cupcakes += amount;
+        totalCupcakes += amount;
+        updateDisplay();
+    }
+
+    private void buyClickPower() {
+        if (cupcakes >= clickUpgradeCost) {
+            cupcakes -= clickUpgradeCost;
+            clickPower++;
+            clickUpgradeCost *= 2;
+            updateDisplay();
+        }
+    }
+
+    private void buyBaker() {
+        if (cupcakes >= bakerCost) {
+            cupcakes -= bakerCost;
+            bakers++;
+            bakerCost = (int) Math.ceil(bakerCost * 1.6);
+            updateDisplay();
+        }
+    }
+
+    private void buyOven() {
+        if (cupcakes >= ovenCost) {
+            cupcakes -= ovenCost;
+            ovens++;
+            ovenCost = (int) Math.ceil(ovenCost * 1.7);
+            updateDisplay();
+        }
+    }
+
+    private void updateDisplay() {
+        score.setText("Cupcakes: " + cupcakes + "   (baked: " + totalCupcakes + ")");
+        rate.setText("Per second: " + (bakers + ovens * 10) + " | Click power: " + clickPower);
+        clickUpgrade.setText("Upgrade click (+1) - " + clickUpgradeCost);
+        bakerUpgrade.setText("Hire baker (+1/sec) - " + bakerCost);
+        ovenUpgrade.setText("Buy oven (+10/sec) - " + ovenCost);
+        clickUpgrade.setEnabled(cupcakes >= clickUpgradeCost);
+        bakerUpgrade.setEnabled(cupcakes >= bakerCost);
+        ovenUpgrade.setEnabled(cupcakes >= ovenCost);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new CupcakeGame().setVisible(true));
+    }
+}

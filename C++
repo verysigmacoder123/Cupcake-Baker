@@ -1,0 +1,129 @@
+// C++ backend core for a thin Python-facing AI application.
+#include <algorithm>
+#include <atomic>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <future>
+#include <mutex>
+#include <optional>
+#include <regex>
+#include <string>
+#include <unordered_map>
+
+namespace ai {
+
+bool addresses_prompt(const std::string& prompt, const std::string& answer) {
+	const std::regex word("[A-Za-z0-9]{3,}");
+	std::unordered_map<std::string, bool> prompt_words;
+	std::unordered_map<std::string, bool> answer_words;
+	for (std::sregex_iterator it(prompt.begin(), prompt.end(), word), end; it != end; ++it)
+		prompt_words[it->str()] = true;
+	for (std::sregex_iterator it(answer.begin(), answer.end(), word), end; it != end; ++it)
+		answer_words[it->str()] = true;
+	std::size_t matches = 0;
+	for (const auto& entry : prompt_words)
+		if (answer_words.find(entry.first) != answer_words.end()) ++matches;
+	return matches >= std::min<std::size_t>(2, prompt_words.size());
+}
+
+struct Request {
+	std::string prompt;
+	std::string model = "default";
+	std::uint32_t max_tokens = 256;
+	double temperature = 0.2;
+};
+
+struct Response {
+	bool ok = false;
+	std::uint64_t id = 0;
+	std::string text;
+	std::string error;
+};
+
+class Backend {
+public:
+	Response generate(Request request) {
+		Response response;
+		response.id = next_id_++;
+		if (request.prompt.empty()) return error(response, "prompt is empty");
+		if (request.prompt.size() > 1'000'000) return error(response, "prompt is too large");
+
+		request.max_tokens = std::clamp(request.max_tokens, 1u, 8192u);
+		request.temperature = std::clamp(request.temperature, 0.0, 2.0);
+		const std::string key = request.model + "\n" + request.prompt + "\n" +
+			std::to_string(request.max_tokens) + "\n" + std::to_string(request.temperature);
+
+		{
+			std::lock_guard<std::mutex> lock(mutex_);
+			auto found = cache_.find(key);
+			if (found != cache_.end()) {
+				found->second.id = response.id;
+				return found->second;
+			}
+		}
+
+		// Replace this adapter with the chosen local or remote model runtime.
+		response.ok = true;
+		response.text = "I understood your question about: " + request.prompt;
+		if (!addresses_prompt(request.prompt, response.text))
+			return error(response, "The generated answer did not match the question.");
+		{
+			std::lock_guard<std::mutex> lock(mutex_);
+			if (cache_.size() >= 128) cache_.erase(cache_.begin());
+			cache_[key] = response;
+		}
+		return response;
+	}
+
+	std::future<Response> generate_async(Request request) {
+		return std::async(std::launch::async, [this, request = std::move(request)] {
+			return generate(std::move(request));
+		});
+	}
+
+private:
+	static Response error(Response response, std::string message) {
+		response.ok = false;
+		response.error = std::move(message);
+		return response;
+	}
+
+	std::atomic<std::uint64_t> next_id_{1};
+	std::mutex mutex_;
+	std::unordered_map<std::string, Response> cache_;
+};
+
+} // namespace ai
+
+// Small C ABI: Python only passes strings and receives owned strings.
+extern "C" {
+struct AiResult {
+	int ok;
+	std::uint64_t id;
+	char* text;
+	char* error;
+};
+
+static char* duplicate(const std::string& value) {
+	char* result = static_cast<char*>(std::malloc(value.size() + 1));
+	if (!result) return nullptr;
+	std::memcpy(result, value.c_str(), value.size() + 1);
+	return result;
+}
+
+AiResult ai_generate(const char* prompt, const char* model,
+					 std::uint32_t max_tokens, double temperature) {
+	static ai::Backend backend;
+	ai::Request request;
+	request.prompt = prompt ? prompt : "";
+	request.model = (model && *model) ? model : "default";
+	request.max_tokens = max_tokens;
+	request.temperature = temperature;
+	const ai::Response response = backend.generate(std::move(request));
+	return {response.ok ? 1 : 0, response.id,
+			duplicate(response.text), duplicate(response.error)};
+}
+
+void ai_free(char* value) { std::free(value); }
+}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="description" content="Cupcake Baker is a cozy cupcake clicker bakery game. Bake cupcakes, unlock upgrades, and grow your sweet shop." />
+	<meta property="og:title" content="Cupcake Baker | Cupcake Clicker" />
+	<meta property="og:description" content="Bake cupcakes, unlock upgrades, and grow your sweet shop." />
+	<title>Cupcake Baker | Cupcake Clicker</title>
+	<link rel="stylesheet" href="css.css" />
+</head>
+<body>
+	<div class="app-shell">
+		<div class="sprinkle-field" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+		<header class="topbar">
+			<a class="brand" href="#game" aria-label="Cupcake Baker home"><span class="brand-mark">C</span><span>Cupcake <em>Baker</em></span></a>
+			<div class="top-actions"><span class="open-status"><i></i> Bakery open</span><button class="music-button" id="music-toggle" type="button" aria-pressed="false">♫ Music off</button><button class="reset-button" id="reset-game" type="button">Reset bakery</button></div>
+		</header>
+		<main class="game-layout" id="game">
+			<section class="play-area" aria-label="Cupcake counter">
+				<div class="eyebrow">TODAY'S SPECIAL</div>
+				<h1>Build your<br /><span>cupcake empire.</span></h1>
+				<p class="intro">Bake one sweet treat at a time, then grow your little shop into the town's most irresistible bakery.</p>
+				<div class="scoreboard"><div><span class="label">CUPCAKES</span><strong id="cupcake-count">0</strong></div><div class="rate"><span class="label">PER SECOND</span><strong><span id="per-second">0</span> <small>+ dough</small></strong></div></div>
+				<div class="boost-panel"><div><b>2× Bake Boost</b><small id="boost-status">Double cupcakes for 60 seconds</small></div><button id="boost-button" type="button">500 ●</button></div>
+				<button class="cupcake-button" id="cupcake-button" type="button" aria-label="Bake a cupcake"><span class="level-badge" id="level-badge">Classic</span><span class="click-ring ring-one"></span><span class="click-ring ring-two"></span><span class="cupcake" aria-hidden="true"><span class="frosting"><i></i><i></i><i></i></span><span class="cake-wrapper"><span class="wrapper-lines"></span></span><span class="cherry">◆</span></span></button>
+				<p class="click-hint">Click the cupcake to bake <strong>+<span id="click-power">1</span></strong></p>
+				<div class="streak"><span>✦</span> <b id="streak-count">0</b> click streak <span class="streak-note" id="streak-note">Keep it sweet!</span></div>
+			</section>
+			<aside class="shop-panel" aria-label="Bakery shop">
+				<div class="shop-heading"><div><span class="eyebrow">THE BAKERY</span><h2>Upgrade your shop</h2></div><span class="coin">●</span></div>
+				<p class="shop-copy">Spend cupcakes to bake faster and unlock your sweetest ideas.</p>
+				<div class="shop-list" id="shop-list"></div>
+				<section class="milestones"><div class="section-heading"><h3>Sweet milestones</h3><span id="achievement-count">0/4</span></div><div class="achievement-list" id="achievement-list"></div></section>
+				<div class="tip"><span>✧</span><p><strong>Bakery tip</strong><br />Your bakers work while you watch the oven.</p></div>
+			</aside>
+		</main>
+		<footer><span>Cupcake Baker</span><span>Made with butter, sugar, and a little persistence.</span></footer>
+	</div>
+	<div class="toast" id="toast" role="status" aria-live="polite"></div>
+	<script src="Javascipt"></script>
+</body>
+</html>
